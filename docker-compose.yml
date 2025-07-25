@@ -1,0 +1,41 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  django:
+    build: .
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    environment:
+      - DJANGO_SETTINGS_MODULE=hami.settings
+
+  celery:
+    build: .
+    command: sh -c "python manage.py migrate && celery -A hami worker --loglevel=info"
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - django
+    environment:
+      - DJANGO_SETTINGS_MODULE=hami.settings
+
+  celery-beat:
+    build: .
+    command: sh -c "python manage.py migrate && celery -A hami beat --loglevel=info"
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - django
+    environment:
+      - DJANGO_SETTINGS_MODULE=hami.settings 
